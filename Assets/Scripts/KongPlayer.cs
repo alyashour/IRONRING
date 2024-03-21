@@ -17,37 +17,56 @@ public class KongPlayer : MonoBehaviour
         collider = GetComponent<Collider2D>();
         results = new Collider2D[4];
     }
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (collision.gameObject.CompareTag("Platform"))
+        {
+            grounded = true;
+        }
+    }
+    private void OnCollisionExit2D(Collision2D collision)
+    {
+        if (collision.gameObject.CompareTag("Platform"))
+        {
+            grounded = false;
+        }
+    }
     private void CheckCollison()
     {
+        Debug.Log("checking collisions");
         grounded = false;
         Vector2 size = collider.bounds.size;
+        Debug.Log(size.y);
         size.y += 0.1f;
         size.x /= 2f;
         int amount = Physics2D.OverlapBoxNonAlloc(transform.position, size, 0f, results);
         
         for (int i = 0; i < amount; i++)
         {
-            GameObject hit = results[i].gameObject;
-            if (hit.layer == LayerMask.NameToLayer("Ground") && hit.transform.position.y < (transform.position.y - 0.5f)){
-                grounded = true;
-                break;
-;            }
+            if (results[i].CompareTag("Platform"))
+            {
+                grounded = true; break;
+            }
         }
     }
     private void Update()
     {
         CheckCollison();
 
-        if (Input.GetButtonDown("Jump")){
+        if (grounded && Input.GetButtonDown("Jump")){
             direction = Vector2.up * jumpStrength;
-        } else
+        }
+        else
         {
             direction += Physics2D.gravity * Time.deltaTime;
         }
 
         direction.x = Input.GetAxis("Horizontal") * moveSpeed;
-        direction.y = Mathf.Max(direction.y, -1f);
-        
+        if (grounded)
+        {
+            direction.y = Mathf.Max(direction.y, -1f);
+        }
+
         if (direction.x > 0f)
         {
             transform.eulerAngles = Vector3.zero;
