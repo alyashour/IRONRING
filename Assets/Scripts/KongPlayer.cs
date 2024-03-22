@@ -4,24 +4,50 @@ using UnityEngine;
 
 public class KongPlayer : MonoBehaviour
 {
+    private SpriteRenderer spriteRenderer;
+    public Sprite[] runSprites;
+    private int spriteIndex;
+
     private new Rigidbody2D rigidbody;
     private Vector2 direction;
+
     public float moveSpeed = 1f;
     public float jumpStrength = 4f;
-    private Collider2D[] results;
+
     private new Collider2D collider;
+
     private bool grounded;
+    private bool climbing;
+
     private void Awake()
     {
         rigidbody = GetComponent<Rigidbody2D>();
         collider = GetComponent<Collider2D>();
-        results = new Collider2D[4];
+        spriteRenderer = GetComponent<SpriteRenderer>();
+    }
+    private void OnEnable()
+    {
+        InvokeRepeating(nameof(AnimateSprite), 1f/12f, 1f/12f);
+    }
+    private void OnDisable()
+    {
+        CancelInvoke();
     }
     private void OnCollisionEnter2D(Collision2D collision)
     {
         if (collision.gameObject.CompareTag("Platform"))
         {
-            grounded = true;
+            foreach (ContactPoint2D contactPoint in collision.contacts)
+            {
+                if (contactPoint.normal.y > 0.5)
+                {
+                    grounded = true;
+                    break;
+                } else
+                {
+                    Physics2D.IgnoreCollision(collision.collider, collider, true); 
+                }
+            }
         }
     }
     private void OnCollisionExit2D(Collision2D collision)
@@ -31,27 +57,30 @@ public class KongPlayer : MonoBehaviour
             grounded = false;
         }
     }
-    private void CheckCollison()
+    private void OnTriggerEnter2D(Collider2D collision)
     {
-        Debug.Log("checking collisions");
-        grounded = false;
-        Vector2 size = collider.bounds.size;
-        Debug.Log(size.y);
-        size.y += 0.1f;
-        size.x /= 2f;
-        int amount = Physics2D.OverlapBoxNonAlloc(transform.position, size, 0f, results);
-        
-        for (int i = 0; i < amount; i++)
+        if (collision.gameObject.CompareTag("Ladder"))
         {
-            if (results[i].CompareTag("Platform"))
+            climbing = true;
+        }
+    }
+    private void OnTriggerExit2D(Collider2D collision)
+    {
+        if (collision.gameObject.CompareTag("Ladder"))
+        {
+            climbing = false;
+            foreach (var platform in FindObjectsOfType<Collider2D>())
             {
-                grounded = true; break;
+                if (platform.CompareTag("Platform"))
+                {
+                    Physics2D.IgnoreCollision(collider, platform, false);
+                }
             }
         }
     }
+
     private void Update()
     {
-        CheckCollison();
 
         if (grounded && Input.GetButtonDown("Jump")){
             direction = Vector2.up * jumpStrength;
@@ -74,10 +103,31 @@ public class KongPlayer : MonoBehaviour
         {
             transform.eulerAngles = new Vector3(0f, 180f, 0f);
         }
+
+
+
+        if (climbing)
+        {
+            direction.y = Input.GetAxis("Vertical") * moveSpeed;
+        }
     }
 
     private void FixedUpdate()
     {
         rigidbody.MovePosition(rigidbody.position + direction * Time.fixedDeltaTime);
+    }
+
+    private void AnimateSprite()
+    {
+        if (direction.x != 0f && grounded)
+        {
+            spriteIndex++;
+            if (spriteIndex >= runSprites.Length)
+            {
+                spriteIndex = 0;
+            }
+            spriteRenderer.sprite = runSprites[spriteIndex];
+        }
+        
     }
 }

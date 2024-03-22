@@ -5,11 +5,12 @@ TagManager:
   serializedVersion: 2
   tags:
   - Platform
+  - Ladder
   layers:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - OneWayPlatform
   - Water
   - UI
   - Ground
